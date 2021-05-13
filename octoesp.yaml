@@ -1,0 +1,96 @@
+esphome:
+  name: octo_esp
+  platform: ESP8266
+  board: nodemcuv2
+
+wifi:
+  ssid: "Some-wifi"
+  password: "Some-Password"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Octo Esp Fallback Hotspot"
+    password: "umFxblAj5WoU"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: "pass"
+
+ota:
+  password: "pass"
+time:
+  - platform: homeassistant
+    id: esptime
+
+sensor:
+  - platform: homeassistant
+    id: octoprint_tool
+    entity_id: sensor.octoprint_actual_tool0_temp
+    internal: true
+
+  - platform: homeassistant
+    id: octoprint_bed
+    entity_id: sensor.octoprint_actual_bed_temp
+    internal: true
+    
+  - platform: homeassistant
+    entity_id: sensor.octoprint_job_percentage
+    name: "Print Percentage"
+    id: print_perc
+
+font:
+  - file: 'arial.ttf'
+    id: font1
+    size: 10
+
+  - file: 'BebasNeue-Regular.ttf'
+    id: font2
+    size: 48
+
+  - file: 'arial.ttf'
+    id: font3
+    size: 14
+
+i2c:
+  sda: D1
+  scl: D2
+  scan: False
+  
+text_sensor:
+  - platform: homeassistant
+    entity_id: sensor.octoprint_current_state
+    name: "Print State"
+    id: print_state
+    
+
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    reset_pin: D0
+    address: 0x3C
+    lambda: |-
+      // Print "Printer State: <state>" in top center
+      it.printf(64, 0, id(font1), TextAlign::TOP_CENTER, "ENDER 3 PRO: %s", id(print_state).state.c_str());
+
+      // Print job percentage (from homeassistant sensor)
+      if (id(print_perc).has_state()) {
+        it.printf(0, 60, id(font3), TextAlign::BASELINE_LEFT , "J:%.1f%%", id(print_perc).state);
+      }
+
+      // Print time in HH:MM format
+      it.strftime(0, 23, id(font3), TextAlign::TOP_LEFT, "%H:%M:%S", id(esptime).now());
+
+      // Print Tool temp (from homeassistant sensor)
+      if (id(octoprint_tool).has_state()) {
+        it.printf(127, 23, id(font3), TextAlign::TOP_RIGHT , "T:%.1f°C", id(octoprint_tool).state);
+      }
+
+      // Print Bed temperature (from homeassistant sensor)
+      if (id(octoprint_bed).has_state()) {
+        it.printf(127, 60, id(font3), TextAlign::BASELINE_RIGHT , "B:%.1f°C", id(octoprint_bed).state);
+      }
